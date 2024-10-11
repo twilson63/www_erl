@@ -31,7 +31,7 @@ variable "image_family" {
 # Source block to define GCP builder
 source "googlecompute" "debian" {
   project_id      = var.project_id
-  source_image_family = "debian-11"
+  source_image_family = "debian-12"  
   zone            = var.zone
   machine_type    = "n1-standard-1"
   ssh_username    = "packer"
@@ -52,7 +52,7 @@ build {
   # Configure Nginx as reverse proxy
   provisioner "shell" {
     inline = [
-      "sudo bash -c 'cat <<EOF > /etc/nginx/sites-available/www_erl\nserver {\n    listen 80;\n    server_name _;\n    location / {\n        proxy_pass http://localhost:8080/;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n    }\n}\nEOF'"
+      "sudo bash -c 'cat <<EOF > /etc/nginx/sites-available/www_erl\nserver {\n    listen 80;\n    server_name _;\n    location / {\n        proxy_pass http://localhost:8080/;\n        proxy_set_header Host \\$host;\n        proxy_set_header X-Real-IP \\$remote_addr;\n    }\n}\nEOF'"
     ]
   }
 
@@ -85,9 +85,11 @@ build {
       "echo '[Unit]' | sudo tee /etc/systemd/system/www_erl.service",
       "echo 'Description=Hello Erlang App' | sudo tee -a /etc/systemd/system/www_erl.service",
       "echo '[Service]' | sudo tee -a /etc/systemd/system/www_erl.service",
-      "echo 'ExecStart=/opt/www_erl/bin/www_erl start' | sudo tee -a /etc/systemd/system/www_erl.service",
-      "echo 'Restart=always' | sudo tee -a /etc/systemd/system/www_erl.service",
+      "echo 'Type=simple' | sudo tee -a /etc/systemd/system/www_erl.service",
+      "echo 'ExecStart=/opt/www_erl/bin/www_erl daemon' | sudo tee -a /etc/systemd/system/www_erl.service",
+      "echo 'Restart=on-failure' | sudo tee -a /etc/systemd/system/www_erl.service",
       "echo '[Install]' | sudo tee -a /etc/systemd/system/www_erl.service",
+      "echo 'WantedBy=multi-user.target' | sudo tee -a /etc/systemd/system/www_erl.service",
       
       # Enable and start the service
       "sudo systemctl enable www_erl",
